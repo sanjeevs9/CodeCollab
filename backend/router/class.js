@@ -492,12 +492,6 @@ router.post("/class/request/handle", authmiddleware, async (req, res) => {
             },
           },
         });
-
-        await tx.user.findMany({
-          select: {
-            classrooms: true,
-          },
-        });
       });
       res.json({
         message: "student accepted to the class",
@@ -505,8 +499,9 @@ router.post("/class/request/handle", authmiddleware, async (req, res) => {
       return;
     }
   } catch (err) {
-    return res.status(404).json({
-      message: err,
+    console.error("Error handling request:", err);
+    return res.status(500).json({
+      message: err.message || "Failed to handle request",
     });
   }
 });

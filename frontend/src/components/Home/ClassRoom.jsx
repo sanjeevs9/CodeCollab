@@ -10,6 +10,8 @@ import {
   Edit2,
   Trash2,
   User,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { useRecoilState } from "recoil";
 import { useContext, useEffect, useState } from "react";
@@ -47,6 +49,10 @@ export default function ClassroomsContent() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingClassroom, setEditingClassroom] = useState(null);
   const [editClassName, setEditClassName] = useState("");
+  const [pendingRequests, setPendingRequests] = useState(new Set());
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [requestTarget, setRequestTarget] = useState(null);
+  const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -105,24 +111,25 @@ export default function ClassroomsContent() {
     }
   }
 
-  async function request(id, teacherId) {
+
+  function openRequestModal(classroom) {
     if (value.type === "TEACHER") {
       toast.error("Teachers cannot join other classrooms");
       return;
     }
+    setRequestTarget(classroom);
+    setIsRequestModalOpen(true);
+  }
 
-    console.log("Sending request with data:", {
-      classId: id,
-      teacherId: teacherId,
-    });
-    console.log("Auth token:", token);
-
+  async function confirmRequest() {
+    if (!requestTarget) return;
+    setIsRequesting(true);
     try {
       const res = await axios.post(
         `${backend}/room/class/request/create`,
         {
-          classId: id,
-          teacherId: teacherId,
+          classId: requestTarget.id,
+          teacherId: requestTarget.teacher.id,
         },
         {
           headers: {
@@ -131,26 +138,22 @@ export default function ClassroomsContent() {
         }
       );
 
-      console.log("Request response:", res.data);
-
       if (res.data.status === "PENDING") {
         toast.info("Request already pending");
       } else if (res.data.message === "you are already in the class") {
         toast.info("You are already a member of this class");
       } else {
-        toast.success("Request sent successfully");
-        // Refresh the joined classes list
-        fetchStudent();
+        toast.success("Request sent! Waiting for teacher approval.");
       }
+      setPendingRequests((prev) => new Set([...prev, requestTarget.id]));
     } catch (error) {
-      console.error("Request error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
       const errorMessage =
         error.response?.data?.message || "Failed to send request";
       toast.error(errorMessage);
+    } finally {
+      setIsRequesting(false);
+      setIsRequestModalOpen(false);
+      setRequestTarget(null);
     }
   }
 
@@ -262,10 +265,91 @@ export default function ClassroomsContent() {
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     );
   }
+
+  const ClassroomCard = ({ classroom, showJoinButton = false }) => (
+    <Card className="card-surface card-hover group">
+      {/* Gradient accent strip */}
+      <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-t-lg opacity-60 group-hover:opacity-100 transition-opacity" />
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center justify-between text-[var(--text-primary)]">
+          <div className="flex items-center">
+            <BookOpen className="h-5 w-5 mr-2 text-emerald-400" />
+            {classroom.name}
+          </div>
+          {value.type !== "STUDENT" &&
+            classroom.teacher.id === value.id && (
+              <div className="flex space-x-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => handleEditClick(e, classroom)}
+                  className="btn-ghost-theme h-8 w-8"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (
+                      window.confirm(
+                        "Are you sure you want to delete this classroom?"
+                      )
+                    ) {
+                      handleDeleteClassroom(classroom.id);
+                    }
+                  }}
+                  className="hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-400 h-8 w-8"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center text-sm text-[var(--text-muted)]">
+          <User className="h-4 w-4 mr-2" />
+          {classroom.teacher.name}
+        </div>
+        {showJoinButton && value.type === "STUDENT" &&
+          !joinedclass.some((c) => c.id === classroom.id) && (
+            pendingRequests.has(classroom.id) ? (
+              <div className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-500 text-sm font-medium">
+                <Clock className="h-4 w-4 animate-pulse-soft" />
+                Waiting for Approval
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full mt-2 border-[var(--border-subtle)] bg-transparent text-[var(--text-primary)] hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openRequestModal(classroom);
+                }}
+              >
+                Request to Join
+              </Button>
+            )
+          )}
+        {joinedclass.some((c) => c.id === classroom.id) && (
+          <Button
+            className="w-full mt-2 btn-gradient font-medium"
+            onClick={() =>
+              OpenClass(classroom.id, classroom.name)
+            }
+          >
+            Enter Classroom
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <>
@@ -277,55 +361,55 @@ export default function ClassroomsContent() {
         />
       ) : (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <h2 className="text-3xl font-bold">Classrooms</h2>
-              <div className="flex items-center text-gray-500">
+              <h2 className="text-3xl font-bold text-[var(--text-primary)]">Classrooms</h2>
+              <div className="flex items-center text-[var(--text-muted)]">
                 <BookOpen className="h-5 w-5 mr-2" />
-                <span className="text-lg">Total: {allclass.length}</span>
+                <span className="text-sm">{allclass.length} total</span>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="Search Classrooms"
-                  className="pl-10 bg-white w-64"
+                  placeholder="Search classrooms..."
+                  className="pl-10 input-dark w-64 h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-[var(--text-muted)]" />
               </div>
               {value.type !== "STUDENT" && (
                 <Button
-                  className="bg-primary text-white hover:bg-primary/90"
+                  className="btn-gradient text-[#0a0a0f] font-medium"
                   onClick={() => setIsCreateModalOpen(true)}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Create Classroom
+                  <Plus className="mr-2 h-4 w-4" /> Create
                 </Button>
               )}
               {value.type === "STUDENT" && (
                 <Button
-                  className="bg-primary text-white hover:bg-primary/90"
+                  className="btn-gradient text-[#0a0a0f] font-medium"
                   onClick={() => setIsJoinModalOpen(true)}
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Join Classroom
+                  <Plus className="mr-2 h-4 w-4" /> Join
                 </Button>
               )}
             </div>
           </div>
 
           <Tabs defaultValue="all" className="space-y-4">
-            <TabsList className="bg-white">
+            <TabsList className="tab-list-surface">
               <TabsTrigger
                 value="all"
-                className="data-[state=active]:bg-gray-100"
+                className="tab-trigger-theme"
               >
                 All Classrooms
               </TabsTrigger>
               <TabsTrigger
                 value="joined"
-                className="data-[state=active]:bg-gray-100"
+                className="tab-trigger-theme"
               >
                 My Classrooms
               </TabsTrigger>
@@ -334,84 +418,12 @@ export default function ClassroomsContent() {
             <TabsContent value="all" className="space-y-4">
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {filteredClasses(allclass).map((classroom) => (
-                    <Card
-                      key={classroom.id}
-                      className="bg-white shadow-sm hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xl flex items-center justify-between">
-                          <div className="flex items-center">
-                            <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                            {classroom.name}
-                          </div>
-                          {value.type !== "STUDENT" &&
-                            classroom.teacher.id === value.id && (
-                              <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => handleEditClick(e, classroom)}
-                                  className="hover:bg-gray-100"
-                                >
-                                  <Edit2 className="h-4 w-4 text-gray-500" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (
-                                      window.confirm(
-                                        "Are you sure you want to delete this classroom?"
-                                      )
-                                    ) {
-                                      handleDeleteClassroom(classroom.id);
-                                    }
-                                  }}
-                                  className="hover:bg-gray-100"
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <User className="h-4 w-4 mr-2" />
-                          {classroom.teacher.name}
-                        </div>
-                        {value.type === "STUDENT" &&
-                          !joinedclass.some((c) => c.id === classroom.id) && (
-                            <Button
-                              variant="outline"
-                              className="w-full mt-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                request(classroom.id, classroom.teacher.id);
-                              }}
-                            >
-                              Request to Join
-                            </Button>
-                          )}
-                        {joinedclass.some((c) => c.id === classroom.id) && (
-                          <Button
-                            variant="default"
-                            className="w-full mt-2"
-                            onClick={() =>
-                              OpenClass(classroom.id, classroom.name)
-                            }
-                          >
-                            Enter Classroom
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <ClassroomCard key={classroom.id} classroom={classroom} showJoinButton={true} />
                   ))}
                 </div>
               )}
@@ -420,69 +432,12 @@ export default function ClassroomsContent() {
             <TabsContent value="joined" className="space-y-4">
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {filteredClasses(joinedclass).map((classroom) => (
-                    <Card
-                      key={classroom.id}
-                      className="bg-white shadow-sm hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-xl flex items-center justify-between">
-                          <div className="flex items-center">
-                            <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                            {classroom.name}
-                          </div>
-                          {value.type !== "STUDENT" &&
-                            classroom.teacher.id === value.id && (
-                              <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => handleEditClick(e, classroom)}
-                                  className="hover:bg-gray-100"
-                                >
-                                  <Edit2 className="h-4 w-4 text-gray-500" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (
-                                      window.confirm(
-                                        "Are you sure you want to delete this classroom?"
-                                      )
-                                    ) {
-                                      handleDeleteClassroom(classroom.id);
-                                    }
-                                  }}
-                                  className="hover:bg-gray-100"
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            )}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <User className="h-4 w-4 mr-2" />
-                          {classroom.teacher.name}
-                        </div>
-                        <Button
-                          variant="default"
-                          className="w-full mt-2"
-                          onClick={() =>
-                            OpenClass(classroom.id, classroom.name)
-                          }
-                        >
-                          Enter Classroom
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    <ClassroomCard key={classroom.id} classroom={classroom} />
                   ))}
                 </div>
               )}
@@ -492,10 +447,10 @@ export default function ClassroomsContent() {
       )}
 
       <Dialog open={isJoinModalOpen} onOpenChange={setIsJoinModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dialog-surface">
           <DialogHeader>
-            <DialogTitle>Join a Classroom</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[var(--text-primary)]">Join a Classroom</DialogTitle>
+            <DialogDescription className="text-[var(--text-muted)]">
               Enter the classroom code provided by your teacher
             </DialogDescription>
           </DialogHeader>
@@ -504,32 +459,32 @@ export default function ClassroomsContent() {
               <Input
                 id="classroomCode"
                 placeholder="Enter Classroom Code"
-                className="col-span-4"
+                className="col-span-4 input-dark"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value)}
               />
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsJoinModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsJoinModalOpen(false)} className="btn-outline-theme">
               Cancel
             </Button>
-            <Button onClick={handleJoinClassroom}>Join Classroom</Button>
+            <Button onClick={handleJoinClassroom} className="btn-gradient text-[#0a0a0f] font-medium">Join Classroom</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dialog-surface">
           <DialogHeader>
-            <DialogTitle>Create a Classroom</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[var(--text-primary)]">Create a Classroom</DialogTitle>
+            <DialogDescription className="text-[var(--text-muted)]">
               Create a new classroom for your students
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="classroomName" className="col-span-4">
+              <Label htmlFor="classroomName" className="col-span-4 text-[var(--text-secondary)]">
                 Classroom Name
               </Label>
               <Input
@@ -537,7 +492,7 @@ export default function ClassroomsContent() {
                 value={newClassroomName}
                 onChange={(e) => setNewClassroomName(e.target.value)}
                 placeholder="Enter Classroom Name"
-                className="col-span-4"
+                className="col-span-4 input-dark"
               />
             </div>
           </div>
@@ -545,12 +500,13 @@ export default function ClassroomsContent() {
             <Button
               variant="outline"
               onClick={() => setIsCreateModalOpen(false)}
+              className="btn-outline-theme"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateClassroom}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="btn-gradient text-[#0a0a0f] font-medium"
             >
               Create Classroom
             </Button>
@@ -559,16 +515,16 @@ export default function ClassroomsContent() {
       </Dialog>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dialog-surface">
           <DialogHeader>
-            <DialogTitle>Edit Classroom</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[var(--text-primary)]">Edit Classroom</DialogTitle>
+            <DialogDescription className="text-[var(--text-muted)]">
               Update the name of your classroom
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editClassName" className="col-span-4">
+              <Label htmlFor="editClassName" className="col-span-4 text-[var(--text-secondary)]">
                 Classroom Name
               </Label>
               <Input
@@ -576,19 +532,77 @@ export default function ClassroomsContent() {
                 value={editClassName}
                 onChange={(e) => setEditClassName(e.target.value)}
                 placeholder="Enter Classroom Name"
-                className="col-span-4"
+                className="col-span-4 input-dark"
               />
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="btn-outline-theme">
               Cancel
             </Button>
             <Button
               onClick={handleEditClassroom}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="btn-gradient text-[#0a0a0f] font-medium"
             >
               Update Classroom
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Request to Join Confirmation Modal */}
+      <Dialog open={isRequestModalOpen} onOpenChange={setIsRequestModalOpen}>
+        <DialogContent className="sm:max-w-[400px] dialog-surface">
+          <DialogHeader>
+            <DialogTitle className="text-[var(--text-primary)]">Join Classroom</DialogTitle>
+            <DialogDescription className="text-[var(--text-muted)]">
+              Send a request to join this classroom. The teacher will review and approve your request.
+            </DialogDescription>
+          </DialogHeader>
+          {requestTarget && (
+            <div className="py-4 space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)]">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="font-semibold text-[var(--text-primary)]">{requestTarget.name}</p>
+                  <p className="text-sm text-[var(--text-muted)]">by {requestTarget.teacher.name}</p>
+                </div>
+              </div>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Once approved, you'll be able to access all projects in this classroom.
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsRequestModalOpen(false);
+                setRequestTarget(null);
+              }}
+              className="btn-outline-theme"
+              disabled={isRequesting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmRequest}
+              className="btn-gradient font-medium"
+              disabled={isRequesting}
+            >
+              {isRequesting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Send Request
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>

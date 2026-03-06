@@ -20,14 +20,12 @@ export default function Chat({ roomid }) {
   const value = useContext(Authcontext);
   const { projectId } = useParams();
 
-  // Scroll to bottom when messages update
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Handle sending messages
   const sendMessage = () => {
     if (!input.trim()) return;
 
@@ -47,15 +45,11 @@ export default function Chat({ roomid }) {
     }
   };
 
-  // Initialize socket connection and listeners
   useEffect(() => {
-    // Join project room on component mount
     socket.emit("joinProjectRoom", { roomid: projectId || roomid });
 
-    // Listen for incoming messages
     socket.on("chatMessage", (messageData) => {
       setMessages((prev) => {
-        // Check if message already exists to prevent duplicates
         const messageExists = prev.some(
           (msg) =>
             msg.senderId === messageData.senderId &&
@@ -66,7 +60,6 @@ export default function Chat({ roomid }) {
       });
     });
 
-    // Connection status
     socket.on("connect", () => {
       setIsConnected(true);
       toast.success("Connected to chat");
@@ -77,7 +70,6 @@ export default function Chat({ roomid }) {
       toast.error("Disconnected from chat");
     });
 
-    // Cleanup on unmount
     return () => {
       socket.off("chatMessage");
       socket.off("connect");
@@ -108,14 +100,14 @@ export default function Chat({ roomid }) {
   };
 
   return (
-    <div className="flex flex-col h-full border rounded-lg bg-background shadow-lg">
-      <div className="p-4 border-b bg-muted/50">
+    <div className="flex flex-col h-full bg-[var(--surface-raised)]">
+      <div className="p-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">Chat</h3>
+          <h3 className="text-base font-semibold text-[var(--text-primary)] font-mono">Chat</h3>
           <div className="flex items-center gap-2">
             {!isConnected && (
-              <div className="flex items-center gap-1 text-sm text-red-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex items-center gap-1 text-xs text-red-400">
+                <Loader2 className="h-3 w-3 animate-spin" />
                 Reconnecting...
               </div>
             )}
@@ -123,23 +115,23 @@ export default function Chat({ roomid }) {
         </div>
 
         <Tabs defaultValue={activeTab} className="w-full">
-          <TabsList className="w-full mb-2">
-            <TabsTrigger value="room" className="flex-1">
-              <MessageSquare className="h-4 w-4 mr-2" />
+          <TabsList className="w-full mb-2 tab-list-surface">
+            <TabsTrigger value="room" className="flex-1 tab-trigger-theme text-xs">
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
               Project
             </TabsTrigger>
-            <TabsTrigger value="class" className="flex-1">
-              <Users className="h-4 w-4 mr-2" />
+            <TabsTrigger value="class" className="flex-1 tab-trigger-theme text-xs">
+              <Users className="h-3.5 w-3.5 mr-1.5" />
               Class
             </TabsTrigger>
           </TabsList>
 
-          <div className="h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
-            <TabsContent value="room" className="space-y-4 p-2">
+          <div className="h-[calc(100vh-220px)] overflow-y-auto">
+            <TabsContent value="room" className="space-y-3 p-1">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-8">
-                  <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-                  <p>No messages yet. Start the conversation!</p>
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] text-sm py-8">
+                  <MessageSquare className="h-8 w-8 mb-2 opacity-30" />
+                  <p className="text-xs">No messages yet. Start the conversation!</p>
                 </div>
               ) : (
                 messages.map((message, index) => (
@@ -150,36 +142,36 @@ export default function Chat({ roomid }) {
                     })}
                   >
                     {message.senderId !== value.id && (
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-7 w-7">
                         <AvatarImage
                           src={`https://avatar.vercel.sh/${message.sender}`}
                         />
-                        <AvatarFallback className="text-xs">
+                        <AvatarFallback className="text-xs bg-emerald-500/10 text-[var(--text-secondary)]">
                           {getInitials(message.sender)}
                         </AvatarFallback>
                       </Avatar>
                     )}
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2 text-sm shadow-sm",
+                        "max-w-[80%] rounded-lg px-3 py-2 text-sm",
                         {
-                          "bg-primary text-primary-foreground":
+                          "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white":
                             message.senderId === value.id,
-                          "bg-muted hover:bg-muted/80 transition-colors":
+                          "bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border-subtle)]":
                             message.senderId !== value.id,
                         }
                       )}
                     >
                       {message.senderId !== value.id && (
-                        <p className="font-medium text-xs mb-1 text-primary">
+                        <p className="font-medium text-xs mb-0.5 text-emerald-500">
                           {message.sender}
                         </p>
                       )}
-                      <div className="space-y-1">
-                        <p className="whitespace-pre-wrap break-words">
+                      <div className="space-y-0.5">
+                        <p className="whitespace-pre-wrap break-words text-sm">
                           {message.text}
                         </p>
-                        <p className="text-[10px] opacity-70 text-right">
+                        <p className="text-[10px] opacity-60 text-right">
                           {formatTime(message.timestamp)}
                         </p>
                       </div>
@@ -191,16 +183,16 @@ export default function Chat({ roomid }) {
             </TabsContent>
 
             <TabsContent value="class">
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm py-8">
-                <Users className="h-8 w-8 mb-2 opacity-50" />
-                <p>Class-wide chat coming soon!</p>
+              <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] text-sm py-8">
+                <Users className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-xs">Class-wide chat coming soon!</p>
               </div>
             </TabsContent>
           </div>
         </Tabs>
       </div>
 
-      <div className="p-4 border-t bg-muted/50">
+      <div className="p-3 border-t border-[var(--border-subtle)] mt-auto">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -213,14 +205,14 @@ export default function Chat({ roomid }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Type a message..."
-            className="flex-1 bg-background"
+            className="flex-1 input-dark h-9 text-sm"
             disabled={!isConnected}
           />
           <Button
             type="submit"
             size="icon"
             disabled={!input.trim() || !isConnected}
-            className="shrink-0"
+            className="shrink-0 btn-gradient h-9 w-9"
           >
             <SendHorizontal className="h-4 w-4" />
             <span className="sr-only">Send message</span>

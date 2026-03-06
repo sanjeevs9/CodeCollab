@@ -2,12 +2,11 @@ import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { python } from "@codemirror/lang-python";
 import { java } from "@codemirror/lang-java";
-import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { vscodeDark, vscodeLight } from "@uiw/codemirror-theme-vscode";
 import { socket } from "../../useSocket";
 import { LANGUAGE } from "../codeMap";
 import { useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Play,
   Users,
@@ -38,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ThemeToggle from "./ThemeToggle";
 
 const language = {
   [LANGUAGE["JS"].language]: `// JavaScript code
@@ -54,12 +54,12 @@ console.log(greet("Developer"));`,
 public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, World!");
-        
+
         // Example method
         String message = greet("Developer");
         System.out.println(message);
     }
-    
+
     public static String greet(String name) {
         return "Hello, " + name + "!";
     }
@@ -94,60 +94,43 @@ const getLanguageExtension = (language) => {
   }
 };
 
-// Add this CSS at the top of the file, after imports
 const editorStyles = `
   .cm-scroller::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
-
   .cm-scroller::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: #0d0d15;
   }
-
   .cm-scroller::-webkit-scrollbar-thumb {
-    background: #424242;
-    border-radius: 5px;
-    border: 2px solid #1e1e1e;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    border: 2px solid #0d0d15;
   }
-
   .cm-scroller::-webkit-scrollbar-thumb:hover {
-    background: #4f4f4f;
+    background: rgba(255, 255, 255, 0.15);
   }
-
   .cm-scroller::-webkit-scrollbar-corner {
-    background: #1e1e1e;
+    background: #0d0d15;
   }
-
   .output-scroll::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
-
   .output-scroll::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: transparent;
   }
-
   .output-scroll::-webkit-scrollbar-thumb {
-    background: #424242;
-    border-radius: 5px;
-    border: 2px solid #1e1e1e;
+    background: rgba(128, 128, 128, 0.2);
+    border-radius: 4px;
   }
-
   .output-scroll::-webkit-scrollbar-thumb:hover {
-    background: #4f4f4f;
+    background: rgba(128, 128, 128, 0.3);
   }
-
-  .output-scroll::-webkit-scrollbar-corner {
-    background: #1e1e1e;
-  }
-
-  /* Prevent layout shift when scrollbar appears */
   .editor-container {
     overflow: hidden;
     position: relative;
   }
-
   .editor-content {
     position: absolute;
     top: 0;
@@ -156,15 +139,11 @@ const editorStyles = `
     bottom: 0;
     overflow: auto;
   }
-
-  /* Ensure top bar and sidebars stay fixed */
   .top-bar {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: white;
   }
-
   .left-sidebar {
     position: sticky;
     left: 0;
@@ -172,7 +151,6 @@ const editorStyles = `
     height: 100vh;
     z-index: 5;
   }
-
   .chat-sidebar {
     position: sticky;
     right: 0;
@@ -183,6 +161,7 @@ const editorStyles = `
 `;
 
 export default function CodeArea() {
+  const [isLight, setIsLight] = useState(() => document.documentElement.classList.contains("light"));
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { projectId, projectName } = useParams();
   const value = useContext(Authcontext);
@@ -204,6 +183,15 @@ export default function CodeArea() {
 
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+
+  // Watch for theme changes on <html> element
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsLight(document.documentElement.classList.contains("light"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     socket.emit("privateRoomJoin", projectId);
@@ -244,7 +232,6 @@ export default function CodeArea() {
   }, [projectId, token]);
 
   useEffect(() => {
-    // Join project room on component mount
     socket.emit("joinProjectRoom", {
       roomid: projectId,
       userInfo: {
@@ -254,7 +241,6 @@ export default function CodeArea() {
       },
     });
 
-    // Listen for project user updates
     socket.on("projectUsers", ({ roomId, count, users }) => {
       if (roomId === projectId) {
         setConnectionCount(count);
@@ -262,7 +248,6 @@ export default function CodeArea() {
       }
     });
 
-    // Listen for user disconnections
     socket.on("userLeft", ({ roomId, userId }) => {
       if (roomId === projectId) {
         setOnlineUsers((prev) => prev.filter((user) => user.id !== userId));
@@ -270,23 +255,19 @@ export default function CodeArea() {
       }
     });
 
-    // Listen for code updates
     socket.on("privateMessage", (code, languageCode) => {
       setCodes((prev) => ({ ...prev, [languageCode]: code }));
     });
 
-    // Listen for chat messages
     socket.on("chatMessage", (messageData) => {
       setMessages((prev) => [...prev, messageData]);
     });
 
-    // Handle socket disconnection
     socket.on("disconnect", () => {
       setOnlineUsers([]);
       setConnectionCount(0);
     });
 
-    // Handle socket reconnection
     socket.on("connect", () => {
       socket.emit("joinProjectRoom", {
         roomid: projectId,
@@ -298,7 +279,6 @@ export default function CodeArea() {
       });
     });
 
-    // Cleanup on unmount
     return () => {
       socket.off("projectUsers");
       socket.off("userLeft");
@@ -310,7 +290,6 @@ export default function CodeArea() {
     };
   }, [projectId, value.id, value.name, value.type]);
 
-  // Handle code changes
   const handleCodeChange = (value, languageCode) => {
     setCodes((prev) => ({ ...prev, [languageCode]: value }));
     socket.emit("privateMessage", {
@@ -320,7 +299,6 @@ export default function CodeArea() {
     });
   };
 
-  // Handle sending messages
   const handleSendMessage = () => {
     if (!input.trim()) return;
 
@@ -340,12 +318,10 @@ export default function CodeArea() {
     }
   };
 
-  // Add message input handler
   const handleInputChange = (e) => {
     setInput(e.target.value);
   };
 
-  // Add message key press handler
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -398,16 +374,19 @@ export default function CodeArea() {
 
   if (!value) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-[var(--surface)]">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-screen items-center justify-center bg-[var(--surface)]">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+          <span className="text-sm text-[var(--text-muted)] font-mono">Loading editor...</span>
+        </div>
       </div>
     );
   }
@@ -415,52 +394,52 @@ export default function CodeArea() {
   return (
     <>
       <style>{editorStyles}</style>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <div className="flex h-screen bg-[var(--surface)] overflow-hidden">
         {/* Left sidebar */}
         <div
           className={`left-sidebar ${
             isSidebarOpen ? "w-72" : "w-0"
-          } bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden shadow-lg`}
+          } bg-[var(--surface-raised)] border-r border-[var(--border-subtle)] transition-all duration-300 overflow-hidden`}
         >
-          <div className="p-6 space-y-6 h-full overflow-y-auto">
+          <div className="p-5 space-y-6 h-full overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-800 truncate">
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] truncate font-mono">
                 {projectName}
               </h2>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsSidebarOpen(false)}
-                className="lg:hidden"
+                className="lg:hidden btn-ghost-theme"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 text-sm text-[var(--text-secondary)]">
                 <Users className="w-4 h-4" />
-                <span>Online Users ({connectionCount})</span>
+                <span>Online ({connectionCount})</span>
               </div>
-              <div className="pl-6 space-y-2">
+              <div className="space-y-1.5">
                 {onlineUsers.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center space-x-2 text-sm p-2 rounded-md bg-white shadow-sm"
+                    className="flex items-center space-x-2 text-sm p-2.5 rounded-lg badge-locked"
                   >
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="font-medium">{user.name}</span>
-                    <span className="text-xs text-gray-500">({user.type})</span>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-soft" />
+                    <span className="font-medium text-[var(--text-primary)]">{user.name}</span>
+                    <span className="text-xs text-[var(--text-muted)] font-mono">({user.type})</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
               <Button
                 disabled={isSaving}
                 variant="outline"
-                className="w-full justify-start hover:bg-gray-50"
+                className="w-full justify-start btn-outline-theme"
                 onClick={handleSaveCode}
               >
                 {isSaving ? (
@@ -478,7 +457,7 @@ export default function CodeArea() {
 
               <Button
                 variant="outline"
-                className="w-full justify-start hover:bg-gray-50"
+                className="w-full justify-start btn-outline-theme"
                 onClick={handleShare}
               >
                 <Share2 className="w-4 h-4 mr-2" />
@@ -491,13 +470,13 @@ export default function CodeArea() {
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
-          <div className="top-bar h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm">
-            <div className="flex items-center space-x-3">
+          <div className="top-bar h-14 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] flex items-center justify-between px-4">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate(-1)}
-                className="hover:bg-gray-100"
+                className="btn-ghost-theme h-8 w-8"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -505,7 +484,7 @@ export default function CodeArea() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="hover:bg-gray-100"
+                className="btn-ghost-theme h-8 w-8"
               >
                 <ChevronLeft
                   className={`h-4 w-4 transform ${
@@ -516,7 +495,7 @@ export default function CodeArea() {
               <Button
                 disabled={isRunning}
                 onClick={handleRun}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white h-8 px-4 glow-emerald"
               >
                 {isRunning ? (
                   <>
@@ -526,7 +505,7 @@ export default function CodeArea() {
                 ) : (
                   <>
                     <Play className="w-4 h-4 mr-2" />
-                    Run Code
+                    Run
                   </>
                 )}
               </Button>
@@ -534,22 +513,24 @@ export default function CodeArea() {
                 defaultValue="JS"
                 onValueChange={(value) => SetLanguageCode(LANGUAGE[value])}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[160px] h-8 bg-[var(--surface)] border-[var(--border-subtle)] text-[var(--text-primary)] focus:ring-emerald-500/30">
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="JS">JavaScript</SelectItem>
-                  <SelectItem value="PYTHON">Python</SelectItem>
-                  <SelectItem value="JAVA">Java</SelectItem>
+                <SelectContent className="dialog-surface">
+                  <SelectItem value="JS" className="text-[var(--text-primary)] focus:bg-emerald-500/10 focus:text-[var(--text-primary)]">JavaScript</SelectItem>
+                  <SelectItem value="PYTHON" className="text-[var(--text-primary)] focus:bg-emerald-500/10 focus:text-[var(--text-primary)]">Python</SelectItem>
+                  <SelectItem value="JAVA" className="text-[var(--text-primary)] focus:bg-emerald-500/10 focus:text-[var(--text-primary)]">Java</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
+              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleFontSize}
                 title={`Font Size: ${fontSize}px`}
+                className="btn-ghost-theme h-8 w-8"
               >
                 <Type className="h-4 w-4" />
               </Button>
@@ -560,6 +541,7 @@ export default function CodeArea() {
                 title={
                   showLineNumbers ? "Hide Line Numbers" : "Show Line Numbers"
                 }
+                className="btn-ghost-theme h-8 w-8"
               >
                 <Code2 className="h-4 w-4" />
               </Button>
@@ -568,6 +550,7 @@ export default function CodeArea() {
                 size="icon"
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                className="btn-ghost-theme h-8 w-8"
               >
                 {isFullscreen ? (
                   <Minimize2 className="h-4 w-4" />
@@ -579,8 +562,8 @@ export default function CodeArea() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsChatOpen(!isChatOpen)}
-                className={`hover:bg-gray-100 ${
-                  isChatOpen ? "text-primary" : ""
+                className={`h-8 w-8 ${
+                  isChatOpen ? "text-emerald-400" : "btn-ghost-theme"
                 }`}
                 title={isChatOpen ? "Close Chat" : "Open Chat"}
               >
@@ -593,12 +576,12 @@ export default function CodeArea() {
           <div
             className={`flex-1 grid ${
               isFullscreen ? "grid-rows-1" : "grid-rows-2"
-            } gap-4 p-6 overflow-hidden`}
+            } gap-0 overflow-hidden`}
           >
-            <div className="editor-container relative rounded-lg overflow-hidden border border-gray-200 bg-[#1e1e1e] shadow-sm">
-              <div className="absolute top-0 left-0 right-0 h-8 bg-[#252526] flex items-center px-4 border-b border-gray-700 z-10">
-                <Code2 className="h-4 w-4 text-gray-400 mr-2" />
-                <span className="text-sm text-gray-400">
+            <div className={`editor-container relative border-b border-[var(--border-subtle)] ${isLight ? "bg-white" : "bg-[#0d0d15]"}`}>
+              <div className={`absolute top-0 left-0 right-0 h-8 flex items-center px-4 border-b z-10 ${isLight ? "bg-[#f5f5f5] border-gray-200" : "bg-[#0a0a0f] border-white/[0.05]"}`}>
+                <Code2 className="h-3.5 w-3.5 text-emerald-400/60 mr-2" />
+                <span className="text-xs text-[var(--text-muted)] font-mono">
                   {languageCode.language}
                 </span>
               </div>
@@ -606,7 +589,7 @@ export default function CodeArea() {
                 <CodeMirror
                   value={codes[languageCode.language]}
                   height="100%"
-                  theme={vscodeDark}
+                  theme={isLight ? vscodeLight : vscodeDark}
                   extensions={[
                     getLanguageExtension(languageCode.language.toLowerCase()),
                   ]}
@@ -645,49 +628,47 @@ export default function CodeArea() {
               </div>
             </div>
             {!isFullscreen && (
-              <Card className="overflow-hidden">
-                <CardContent className="p-4 h-full">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium flex items-center">
-                      <Terminal className="h-4 w-4 mr-2 text-gray-500" />
-                      Output
-                    </h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setOutput({ ...output, [languageCode.language]: "" })
-                      }
-                      className="h-7 px-2 text-xs"
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  <div className="bg-[#1e1e1e] text-gray-100 p-4 rounded-md font-mono text-sm overflow-auto h-[calc(100%-2rem)] output-scroll">
-                    {output[languageCode.language].length !== 0 ? (
-                      output[languageCode.language]
-                        .split("\n")
-                        .map((line, index) => (
-                          <div key={index} className="whitespace-pre">
-                            {line}
-                          </div>
-                        ))
-                    ) : (
-                      <div className="text-gray-400 flex items-center justify-center h-full">
-                        <Terminal className="h-5 w-5 mr-2" />
-                        Run your code to see output here
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="bg-[var(--surface)] flex flex-col">
+                <div className="flex items-center justify-between px-4 h-8 border-b border-[var(--border-subtle)]">
+                  <h3 className="text-xs font-medium flex items-center text-[var(--text-muted)] font-mono">
+                    <Terminal className="h-3.5 w-3.5 mr-2 text-emerald-400/60" />
+                    Output
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setOutput({ ...output, [languageCode.language]: "" })
+                    }
+                    className="h-6 px-2 text-xs btn-ghost-theme"
+                  >
+                    Clear
+                  </Button>
+                </div>
+                <div className="flex-1 bg-[var(--surface-raised)] text-[var(--text-primary)] p-4 font-mono text-sm overflow-auto output-scroll">
+                  {output[languageCode.language].length !== 0 ? (
+                    output[languageCode.language]
+                      .split("\n")
+                      .map((line, index) => (
+                        <div key={index} className="whitespace-pre">
+                          {line}
+                        </div>
+                      ))
+                  ) : (
+                    <div className="text-[var(--text-muted)] flex items-center justify-center h-full">
+                      <Terminal className="h-5 w-5 mr-2 opacity-50" />
+                      Run your code to see output here
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
 
         {/* Chat sidebar */}
         {isChatOpen && (
-          <div className="chat-sidebar w-80 border-l border-gray-200 bg-white shadow-lg">
+          <div className="chat-sidebar w-80 border-l border-[var(--border-subtle)] bg-[var(--surface-raised)]">
             <Chat />
           </div>
         )}

@@ -5,6 +5,7 @@ import CodeArea from "./components/CodeArea";
 import Signin from "./components/signin";
 import SignupPage from "./components/signup";
 import Home from "./components/Home/Home";
+import Landing from "./components/Landing";
 
 function App() {
   useEffect(() => {
@@ -27,11 +28,12 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/home" element={<Home />} />
       <Route
         path="/code/:classId/:projectId/:projectName/:userId"
         element={<CodeArea />}
       />
-      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Signin />} />
       <Route path="/create" element={<SignupPage />} />
     </Routes>

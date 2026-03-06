@@ -122,8 +122,8 @@ export default function ProfileContent() {
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Profile Settings</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <h2 className="text-3xl font-bold text-[var(--text-primary)]">Profile Settings</h2>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Manage your account settings and preferences
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function ProfileContent() {
           <Button
             onClick={handleEdit}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 btn-outline-theme"
           >
             <User className="w-4 h-4" />
             Edit Profile
@@ -140,19 +140,21 @@ export default function ProfileContent() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="md:col-span-2">
-          <CardHeader className="border-b bg-gray-50/50">
+        <Card className="md:col-span-2 card-surface">
+          <CardHeader className="border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={value.avatar} alt={value.name} />
-                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                  {value.name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-20 w-20 ring-2 ring-emerald-500/30 ring-offset-2 ring-offset-[var(--surface)]">
+                  <AvatarImage src={value.avatar} alt={value.name} />
+                  <AvatarFallback className="text-2xl bg-gradient-to-br from-emerald-500/20 to-violet-500/20 text-emerald-400 font-bold">
+                    {value.name?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <div>
-                <CardTitle className="text-xl">{value.name}</CardTitle>
-                <p className="text-sm text-gray-500 mt-1">{value.email}</p>
-                <p className="text-sm text-gray-500 mt-1">
+                <CardTitle className="text-xl text-[var(--text-primary)]">{value.name}</CardTitle>
+                <p className="text-sm text-[var(--text-muted)] mt-1">{value.email}</p>
+                <p className="text-xs text-emerald-400/80 mt-1 font-mono">
                   {value.type === "TEACHER" ? "Teacher" : "Student"}
                 </p>
               </div>
@@ -162,11 +164,11 @@ export default function ProfileContent() {
             <form className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium">
+                  <Label htmlFor="name" className="text-sm font-medium text-[var(--text-secondary)]">
                     Full Name
                   </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
                     <Input
                       id="name"
                       value={formData.name}
@@ -174,34 +176,34 @@ export default function ProfileContent() {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       readOnly={!isEditing}
-                      className={`pl-10 ${!isEditing ? "bg-gray-50" : ""}`}
+                      className={`pl-10 input-dark ${!isEditing ? "opacity-60 cursor-not-allowed" : ""}`}
                       placeholder="Enter your full name"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
+                  <Label htmlFor="email" className="text-sm font-medium text-[var(--text-secondary)]">
                     Email Address
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
                     <Input
                       id="email"
                       value={formData.email}
                       readOnly
-                      className="pl-10 bg-gray-50 cursor-not-allowed"
+                      className="pl-10 input-dark opacity-60 cursor-not-allowed"
                       placeholder="Enter your email"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     Email address cannot be changed
                   </p>
                 </div>
               </div>
 
               {isEditing && (
-                <div className="flex justify-end space-x-4 pt-4 border-t">
+                <div className="flex justify-end space-x-4 pt-4 border-t border-[var(--border-subtle)]">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -213,13 +215,14 @@ export default function ProfileContent() {
                       });
                     }}
                     disabled={isLoading}
+                    className="btn-outline-theme"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handleSave}
                     disabled={isLoading}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 btn-gradient text-[#0a0a0f] font-medium"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -234,17 +237,17 @@ export default function ProfileContent() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader className="border-b bg-gray-50/50">
+        <Card className="md:col-span-2 card-surface">
+          <CardHeader className="border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              <CardTitle className="text-xl">Security Settings</CardTitle>
+              <Shield className="w-5 h-5 text-emerald-400" />
+              <CardTitle className="text-xl text-[var(--text-primary)]">Security Settings</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="p-6">
             <form className="space-y-6">
               {passwordError && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{passwordError}</AlertDescription>
                 </Alert>
@@ -254,12 +257,12 @@ export default function ProfileContent() {
                 <div className="space-y-2">
                   <Label
                     htmlFor="currentPassword"
-                    className="text-sm font-medium"
+                    className="text-sm font-medium text-[var(--text-secondary)]"
                   >
                     Current Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
                     <Input
                       id="currentPassword"
                       type="password"
@@ -271,18 +274,18 @@ export default function ProfileContent() {
                         });
                         setPasswordError("");
                       }}
-                      className="pl-10"
+                      className="pl-10 input-dark"
                       placeholder="Enter current password"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="text-sm font-medium">
+                  <Label htmlFor="newPassword" className="text-sm font-medium text-[var(--text-secondary)]">
                     New Password
                   </Label>
                   <div className="relative">
-                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
                     <Input
                       id="newPassword"
                       type="password"
@@ -294,7 +297,7 @@ export default function ProfileContent() {
                         });
                         setPasswordError("");
                       }}
-                      className="pl-10"
+                      className="pl-10 input-dark"
                       placeholder="Enter new password"
                     />
                   </div>
@@ -303,12 +306,12 @@ export default function ProfileContent() {
                 <div className="space-y-2 md:col-span-2">
                   <Label
                     htmlFor="confirmPassword"
-                    className="text-sm font-medium"
+                    className="text-sm font-medium text-[var(--text-secondary)]"
                   >
                     Confirm New Password
                   </Label>
                   <div className="relative">
-                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -320,18 +323,18 @@ export default function ProfileContent() {
                         });
                         setPasswordError("");
                       }}
-                      className="pl-10"
+                      className="pl-10 input-dark"
                       placeholder="Confirm new password"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t">
+              <div className="flex justify-end pt-4 border-t border-[var(--border-subtle)]">
                 <Button
                   onClick={handleChangePassword}
                   disabled={isLoading}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 btn-gradient text-[#0a0a0f] font-medium"
                 >
                   {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

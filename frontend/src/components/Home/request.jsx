@@ -17,16 +17,11 @@ import backend from "../../../backend";
 import axios from "axios";
 import { toast } from "sonner";
 
-// const requests = [
-//     { id: 1, name: 'John Doe', roll: 'A001', email: 'john@example.com', classroom: 'Math 101', classroomId: 'MATH101' },
-//     { id: 2, name: 'Jane Smith', roll: 'A002', email: 'jane@example.com', classroom: 'Physics 202', classroomId: 'PHYS202' },
-//   ]
-
 export default function RequestsContent() {
   const [search, setSearch] = useState("");
   const [requests, setRequest] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingIds, setProcessingIds] = useState(new Set());
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -56,7 +51,7 @@ export default function RequestsContent() {
 
   async function handleRequest(value, requestId, classId, studentId) {
     try {
-      setIsProcessing(true);
+      setProcessingIds((prev) => new Set([...prev, requestId]));
       const res = await axios.post(
         `${backend}/room/class/request/handle`,
         {
@@ -77,23 +72,23 @@ export default function RequestsContent() {
         prevRequests.filter((req) => req.id !== requestId)
       );
 
-      // Show success message
       toast.success(
         res.data.message ||
           (value === "APPROVE"
             ? "Request approved successfully"
             : "Request rejected successfully")
       );
-
-      // Refresh the requests list
-      fetchRequests();
     } catch (error) {
       console.error("Error handling request:", error);
       const errorMessage =
         error.response?.data?.message || "Failed to process request";
       toast.error(errorMessage);
     } finally {
-      setIsProcessing(false);
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
     }
   }
 
@@ -120,8 +115,8 @@ export default function RequestsContent() {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="text-gray-500">Loading requests...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500 mx-auto" />
+          <p className="text-[var(--text-muted)] text-sm font-mono">Loading requests...</p>
         </div>
       </div>
     );
@@ -129,10 +124,10 @@ export default function RequestsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-3xl font-bold">Pending Requests</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-3xl font-bold text-[var(--text-primary)]">Pending Requests</h2>
+          <p className="text-sm text-[var(--text-muted)]">
             Review and manage student requests to join classrooms
           </p>
         </div>
@@ -142,15 +137,15 @@ export default function RequestsContent() {
             placeholder="Search requests..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-white w-64"
+            className="pl-10 input-dark w-64 h-10"
           />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-2.5 h-5 w-5 text-[var(--text-muted)]" />
         </div>
       </div>
 
       {filteredRequests.length === 0 ? (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
+        <Alert className="card-surface text-[var(--text-secondary)]">
+          <AlertCircle className="h-4 w-4 text-[var(--text-muted)]" />
           <AlertDescription>
             {search
               ? "No requests match your search"
@@ -162,33 +157,33 @@ export default function RequestsContent() {
           {filteredRequests.map((request) => (
             <Card
               key={request.id}
-              className="bg-white shadow-sm hover:shadow-md transition-shadow"
+              className="card-surface card-hover"
             >
               <CardContent className="p-6">
                 <div className="flex items-start space-x-4">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="h-12 w-12 avatar-ring">
                     <AvatarImage
                       src={`https://avatar.vercel.sh/${request.student.email}`}
                     />
-                    <AvatarFallback className="bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-gradient-to-br from-emerald-500/20 to-violet-500/20 text-emerald-400 font-semibold">
                       {getInitials(request.student.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h3 className="font-semibold text-lg">
+                      <h3 className="font-semibold text-lg text-[var(--text-primary)]">
                         {request.student.name}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-[var(--text-muted)] font-mono">
                         Roll: {request.student.roll}
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-500">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center text-sm text-[var(--text-muted)]">
                         <Mail className="h-4 w-4 mr-2" />
                         {request.student.email}
                       </div>
-                      <div className="flex items-center text-sm text-gray-500">
+                      <div className="flex items-center text-sm text-[var(--text-muted)]">
                         <BookOpen className="h-4 w-4 mr-2" />
                         {request.class.name}
                       </div>
@@ -204,11 +199,10 @@ export default function RequestsContent() {
                           request.StudentId
                         )
                       }
-                      disabled={isProcessing}
-                      variant="outline"
-                      className="bg-green-500 text-white hover:bg-green-600 border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={processingIds.has(request.id)}
+                      className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed glow-emerald"
                     >
-                      {isProcessing ? (
+                      {processingIds.has(request.id) ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -224,11 +218,10 @@ export default function RequestsContent() {
                           request.StudentId
                         )
                       }
-                      disabled={isProcessing}
-                      variant="outline"
-                      className="bg-red-500 text-white hover:bg-red-600 border-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={processingIds.has(request.id)}
+                      className="bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed glow-red"
                     >
-                      {isProcessing ? (
+                      {processingIds.has(request.id) ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <XCircle className="h-4 w-4 mr-2" />

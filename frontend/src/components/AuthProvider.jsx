@@ -19,13 +19,11 @@ const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // Define public routes that don't require authentication
-      const publicRoutes = ['/login', '/create'];
+      const publicRoutes = ["/", "/login", "/create"];
       const currentPath = location.pathname;
-      
+
       if (!token) {
         setIsLoading(false);
-        // Only redirect to login if not already on a public route
         if (!publicRoutes.includes(currentPath)) {
           navigate("/login");
         }
@@ -46,7 +44,6 @@ const AuthProvider = ({ children }) => {
       } catch (err) {
         console.error("Error fetching user data:", err);
         localStorage.removeItem("token");
-        // Only redirect to login if not already on a public route
         if (!publicRoutes.includes(currentPath)) {
           navigate("/login");
         }
@@ -60,8 +57,8 @@ const AuthProvider = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex h-screen items-center justify-center bg-[var(--surface)]">
+        <div className="w-8 h-8 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
       </div>
     );
   }

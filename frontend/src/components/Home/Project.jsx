@@ -225,48 +225,137 @@ export default function Project({ classroomName }) {
 
   const handleBack = () => {
     setInsideClass(false);
-    navigate("/");
+    navigate("/home");
   };
 
   if (!value?.id) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     );
   }
 
+  const ProjectCard = ({ project, showLock = false }) => {
+    const isOwner = project.user.id === value.id;
+    const isTeacher = value.type === "TEACHER";
+    const hasAccess = isOwner || isTeacher;
+    const connectionCount = projectConnections[project.id] || 0;
+
+    return (
+      <Card
+        onClick={() =>
+          handleCodeEditor(project.id, project.name, project.user.id)
+        }
+        className={`card-surface card-hover group ${
+          !hasAccess ? "cursor-not-allowed opacity-75" : "cursor-pointer"
+        }`}
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center justify-between text-[var(--text-primary)]">
+            <div className="flex items-center">
+              <Code2 className="h-5 w-5 mr-2 text-emerald-400" />
+              <span className="truncate">{project.name}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {connectionCount > 0 && (
+                <div className="flex items-center text-xs text-emerald-400">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse-soft" />
+                  <span>{connectionCount}</span>
+                </div>
+              )}
+              {connectionCount === 0 && (
+                <div className="flex items-center text-xs text-[var(--text-muted)]">
+                  <Users className="h-3.5 w-3.5 mr-1" />
+                  <span>0</span>
+                </div>
+              )}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <div className="flex items-center text-sm text-[var(--text-muted)]">
+                <User className="h-4 w-4 mr-2" />
+                {project.user.name}
+              </div>
+              <div className="flex items-center text-sm text-[var(--text-muted)]">
+                <Mail className="h-4 w-4 mr-2" />
+                <span className="truncate max-w-[180px]">{project.user.email}</span>
+              </div>
+            </div>
+            {hasAccess ? (
+              <div className="flex space-x-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => handleEditClick(e, project)}
+                  className="btn-ghost-theme h-8 w-8"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (
+                      window.confirm(
+                        "Are you sure you want to delete this project?"
+                      )
+                    ) {
+                      handleDeleteProject(project.id);
+                    }
+                  }}
+                  className="hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 h-8 w-8"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center text-sm px-2 py-1 rounded-md badge-locked">
+                <Lock className="h-3.5 w-3.5 mr-1.5 animate-pulse-soft" />
+                <span className="text-xs">Locked</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={handleBack}
-            className="hover:bg-gray-100"
+            className="btn-ghost-theme h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h2 className="text-3xl font-bold">Projects</h2>
-          <div className="flex items-center text-gray-500">
+          <h2 className="text-3xl font-bold text-[var(--text-primary)]">Projects</h2>
+          <div className="flex items-center text-[var(--text-muted)]">
             <BookOpen className="h-5 w-5 mr-2" />
-            <span className="text-lg">{classroomName}</span>
+            <span className="text-sm">{classroomName}</span>
           </div>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           <div className="relative">
             <Input
               type="text"
-              placeholder="Search Projects"
-              className="pl-10 bg-white w-64"
+              placeholder="Search projects..."
+              className="pl-10 input-dark w-64 h-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-[var(--text-muted)]" />
           </div>
           <Button
-            className="bg-primary text-white hover:bg-primary/90"
+            className="btn-gradient text-[#0a0a0f] font-medium"
             onClick={() => setIsCreateProjectModalOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" /> Create Project
@@ -275,11 +364,11 @@ export default function Project({ classroomName }) {
       </div>
 
       <Tabs defaultValue="my" className="space-y-4">
-        <TabsList className="bg-white">
-          <TabsTrigger value="my" className="data-[state=active]:bg-gray-100">
+        <TabsList className="tab-list-surface">
+          <TabsTrigger value="my" className="tab-trigger-theme">
             My Projects
           </TabsTrigger>
-          <TabsTrigger value="all" className="data-[state=active]:bg-gray-100">
+          <TabsTrigger value="all" className="tab-trigger-theme">
             All Projects
           </TabsTrigger>
         </TabsList>
@@ -287,92 +376,19 @@ export default function Project({ classroomName }) {
         <TabsContent value="all" className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
             </div>
           ) : error ? (
-            <div className="text-red-500 text-center">{error}</div>
+            <div className="text-red-400 text-center py-8">{error}</div>
           ) : filteredProjects.length === 0 ? (
-            <div className="text-center text-gray-500">
-              {searchQuery
-                ? "No projects found matching your search"
-                : "No projects yet"}
+            <div className="text-center text-[var(--text-muted)] py-12">
+              <Code2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p>{searchQuery ? "No projects found matching your search" : "No projects yet"}</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredProjects.map((project) => (
-                <Card
-                  key={project.id}
-                  onClick={() =>
-                    handleCodeEditor(project.id, project.name, project.user.id)
-                  }
-                  className={`bg-white shadow-sm hover:shadow-md transition-shadow ${
-                    project.user.id !== value.id && value.type !== "TEACHER"
-                      ? "cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xl flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Code2 className="h-5 w-5 mr-2 text-primary" />
-                        {project.name}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="h-4 w-4 mr-1" />
-                        <span>{projectConnections[project.id] || 0}</span>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <User className="h-4 w-4 mr-2" />
-                          {project.user.name}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Mail className="h-4 w-4 mr-2" />
-                          {project.user.email}
-                        </div>
-                      </div>
-                      {project.user.id === value.id ||
-                      value.type === "TEACHER" ? (
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => handleEditClick(e, project)}
-                            className="hover:bg-gray-100"
-                          >
-                            <Edit2 className="h-4 w-4 text-gray-500" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (
-                                window.confirm(
-                                  "Are you sure you want to delete this project?"
-                                )
-                              ) {
-                                handleDeleteProject(project.id);
-                              }
-                            }}
-                            className="hover:bg-gray-100"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Lock className="h-4 w-4 mr-1" />
-                          <span>Locked</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProjectCard key={project.id} project={project} showLock={true} />
               ))}
             </div>
           )}
@@ -381,80 +397,16 @@ export default function Project({ classroomName }) {
         <TabsContent value="my" className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
             </div>
           ) : error ? (
-            <div className="text-red-500 text-center">{error}</div>
+            <div className="text-red-400 text-center py-8">{error}</div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredProjects
                 .filter((project) => project.user.id === value.id)
                 .map((project) => (
-                  <Card
-                    key={project.id}
-                    onClick={() =>
-                      handleCodeEditor(
-                        project.id,
-                        project.name,
-                        project.user.id
-                      )
-                    }
-                    className="bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-xl flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Code2 className="h-5 w-5 mr-2 text-primary" />
-                          {project.name}
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Users className="h-4 w-4 mr-1" />
-                          <span>{projectConnections[project.id] || 0}</span>
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center text-sm text-gray-500">
-                            <User className="h-4 w-4 mr-2" />
-                            {project.user.name}
-                          </div>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <Mail className="h-4 w-4 mr-2" />
-                            {project.user.email}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => handleEditClick(e, project)}
-                            className="hover:bg-gray-100"
-                          >
-                            <Edit2 className="h-4 w-4 text-gray-500" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (
-                                window.confirm(
-                                  "Are you sure you want to delete this project?"
-                                )
-                              ) {
-                                handleDeleteProject(project.id);
-                              }
-                            }}
-                            className="hover:bg-gray-100"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <ProjectCard key={project.id} project={project} />
                 ))}
             </div>
           )}
@@ -465,16 +417,16 @@ export default function Project({ classroomName }) {
         open={isCreateProjectModalOpen}
         onOpenChange={setIsCreateProjectModalOpen}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dialog-surface">
           <DialogHeader>
-            <DialogTitle>Create a Project</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[var(--text-primary)]">Create a Project</DialogTitle>
+            <DialogDescription className="text-[var(--text-muted)]">
               Create a new project for your classroom
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="projectName" className="col-span-4">
+              <Label htmlFor="projectName" className="col-span-4 text-[var(--text-secondary)]">
                 Project Name
               </Label>
               <Input
@@ -482,7 +434,7 @@ export default function Project({ classroomName }) {
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 placeholder="Enter Project Name"
-                className="col-span-4"
+                className="col-span-4 input-dark"
               />
             </div>
           </div>
@@ -491,13 +443,14 @@ export default function Project({ classroomName }) {
               variant="outline"
               onClick={() => setIsCreateProjectModalOpen(false)}
               disabled={isSubmitting}
+              className="btn-outline-theme"
             >
               Cancel
             </Button>
             <Button
               onClick={handleCreateProject}
               disabled={!newProjectName.trim() || isSubmitting}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="btn-gradient text-[#0a0a0f] font-medium"
             >
               {isSubmitting ? (
                 <>
@@ -513,16 +466,16 @@ export default function Project({ classroomName }) {
       </Dialog>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] dialog-surface">
           <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[var(--text-primary)]">Edit Project</DialogTitle>
+            <DialogDescription className="text-[var(--text-muted)]">
               Update the name of your project
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="editProjectName" className="col-span-4">
+              <Label htmlFor="editProjectName" className="col-span-4 text-[var(--text-secondary)]">
                 Project Name
               </Label>
               <Input
@@ -530,17 +483,17 @@ export default function Project({ classroomName }) {
                 value={editProjectName}
                 onChange={(e) => setEditProjectName(e.target.value)}
                 placeholder="Enter Project Name"
-                className="col-span-4"
+                className="col-span-4 input-dark"
               />
             </div>
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="btn-outline-theme">
               Cancel
             </Button>
             <Button
               onClick={handleEditProject}
-              className="bg-primary text-white hover:bg-primary/90"
+              className="btn-gradient text-[#0a0a0f] font-medium"
             >
               {isSubmitting ? (
                 <>
