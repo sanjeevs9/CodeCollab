@@ -27,6 +27,8 @@ jobs:
             cd /home/${{ secrets.EC2_USER }}/CodeCollab
 
             echo "=== Pulling latest code ==="
+            git checkout -- .
+            git clean -fd
             git pull origin main
 
             echo "=== Installing backend dependencies ==="
