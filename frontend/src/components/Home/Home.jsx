@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ClassroomsContent from "./ClassRoom";
-import { BookOpen, Users, UserCircle, LogOut, Loader2, Terminal } from "lucide-react";
+import { BookOpen, Users, UserCircle, LogOut, Loader2, Terminal, Menu, X } from "lucide-react";
 import { useContext } from "react";
 import { Authcontext } from "../AuthProvider";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import ThemeToggle from "../ThemeToggle";
 export default function Home() {
   const [activeTab, setActiveTab] = useState("classrooms");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const value = useContext(Authcontext);
   const navigate = useNavigate();
 
@@ -47,21 +48,44 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-[var(--surface)]">
+      {/* Mobile backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 sidebar-bg border-r border-[var(--border-subtle)] flex flex-col justify-between">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 sidebar-bg border-r border-[var(--border-subtle)] flex flex-col justify-between transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="p-6 space-y-8">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <Terminal className="w-5 h-5 text-emerald-500" />
-            <h1 className="font-mono font-bold text-base text-[var(--text-primary)]">CodeCollab</h1>
-          </Link>
+          {/* Logo + Close button */}
+          <div className="flex items-center justify-between">
+            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+              <Terminal className="w-5 h-5 text-emerald-500" />
+              <h1 className="font-mono font-bold text-base text-[var(--text-primary)]">CodeCollab</h1>
+            </Link>
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="md:hidden p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* Navigation */}
           <nav className="space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setIsMobileMenuOpen(false);
+                }}
                 className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
                   activeTab === item.id
                     ? "sidebar-active text-[var(--text-primary)]"
@@ -116,7 +140,21 @@ export default function Home() {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto bg-[var(--surface)] dot-pattern">
-        <div className="max-w-7xl mx-auto p-8">
+        {/* Mobile header with hamburger */}
+        <div className="md:hidden flex items-center p-4 border-b border-[var(--border-subtle)] sidebar-bg">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center space-x-2 ml-3">
+            <Terminal className="w-4 h-4 text-emerald-500" />
+            <span className="font-mono font-bold text-sm text-[var(--text-primary)]">CodeCollab</span>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto p-4 md:p-8">
           {activeTab === "classrooms" && <ClassroomsContent />}
           {activeTab === "profile" && <ProfileContent />}
           {activeTab === "request" && <RequestsContent />}

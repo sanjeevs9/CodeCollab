@@ -137,7 +137,7 @@ export default function RequestsContent() {
             placeholder="Search requests..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 input-dark w-64 h-10"
+            className="pl-10 input-dark w-full md:w-64 h-10"
           />
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-[var(--text-muted)]" />
         </div>
@@ -160,8 +160,8 @@ export default function RequestsContent() {
               className="card-surface card-hover"
             >
               <CardContent className="p-6">
-                <div className="flex items-start space-x-4">
-                  <Avatar className="h-12 w-12 avatar-ring">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <Avatar className="h-12 w-12 avatar-ring shrink-0">
                     <AvatarImage
                       src={`https://avatar.vercel.sh/${request.student.email}`}
                     />
@@ -189,7 +189,7 @@ export default function RequestsContent() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col space-y-2">
+                  <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
                     <Button
                       onClick={() =>
                         handleRequest(

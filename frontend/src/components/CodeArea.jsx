@@ -162,7 +162,7 @@ const editorStyles = `
 
 export default function CodeArea() {
   const [isLight, setIsLight] = useState(() => document.documentElement.classList.contains("light"));
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const { projectId, projectName } = useParams();
   const value = useContext(Authcontext);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -395,11 +395,19 @@ export default function CodeArea() {
     <>
       <style>{editorStyles}</style>
       <div className="flex h-screen bg-[var(--surface)] overflow-hidden">
+        {/* Mobile sidebar backdrop */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Left sidebar */}
         <div
           className={`left-sidebar ${
             isSidebarOpen ? "w-72" : "w-0"
-          } bg-[var(--surface-raised)] border-r border-[var(--border-subtle)] transition-all duration-300 overflow-hidden`}
+          } bg-[var(--surface-raised)] border-r border-[var(--border-subtle)] transition-all duration-300 overflow-hidden max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40`}
         >
           <div className="p-5 space-y-6 h-full overflow-y-auto">
             <div className="flex items-center justify-between">
@@ -470,8 +478,8 @@ export default function CodeArea() {
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
-          <div className="top-bar h-14 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] flex items-center justify-between px-4">
-            <div className="flex items-center space-x-2">
+          <div className="top-bar h-14 bg-[var(--surface-raised)] border-b border-[var(--border-subtle)] flex items-center justify-between px-2 sm:px-4">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <Button
                 variant="ghost"
                 size="icon"
@@ -495,7 +503,7 @@ export default function CodeArea() {
               <Button
                 disabled={isRunning}
                 onClick={handleRun}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white h-8 px-4 glow-emerald"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white h-8 px-2 sm:px-4 glow-emerald"
               >
                 {isRunning ? (
                   <>
@@ -513,7 +521,7 @@ export default function CodeArea() {
                 defaultValue="JS"
                 onValueChange={(value) => SetLanguageCode(LANGUAGE[value])}
               >
-                <SelectTrigger className="w-[160px] h-8 bg-[var(--surface)] border-[var(--border-subtle)] text-[var(--text-primary)] focus:ring-emerald-500/30">
+                <SelectTrigger className="w-[100px] sm:w-[160px] h-8 bg-[var(--surface)] border-[var(--border-subtle)] text-[var(--text-primary)] focus:ring-emerald-500/30">
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent className="dialog-surface">
@@ -530,7 +538,7 @@ export default function CodeArea() {
                 size="icon"
                 onClick={toggleFontSize}
                 title={`Font Size: ${fontSize}px`}
-                className="btn-ghost-theme h-8 w-8"
+                className="btn-ghost-theme h-8 w-8 hidden sm:inline-flex"
               >
                 <Type className="h-4 w-4" />
               </Button>
@@ -541,7 +549,7 @@ export default function CodeArea() {
                 title={
                   showLineNumbers ? "Hide Line Numbers" : "Show Line Numbers"
                 }
-                className="btn-ghost-theme h-8 w-8"
+                className="btn-ghost-theme h-8 w-8 hidden sm:inline-flex"
               >
                 <Code2 className="h-4 w-4" />
               </Button>
@@ -550,7 +558,7 @@ export default function CodeArea() {
                 size="icon"
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                className="btn-ghost-theme h-8 w-8"
+                className="btn-ghost-theme h-8 w-8 hidden sm:inline-flex"
               >
                 {isFullscreen ? (
                   <Minimize2 className="h-4 w-4" />
@@ -668,7 +676,7 @@ export default function CodeArea() {
 
         {/* Chat sidebar */}
         {isChatOpen && (
-          <div className="chat-sidebar w-80 border-l border-[var(--border-subtle)] bg-[var(--surface-raised)]">
+          <div className="chat-sidebar w-full fixed inset-0 z-50 md:relative md:inset-auto md:z-5 md:w-80 border-l border-[var(--border-subtle)] bg-[var(--surface-raised)]">
             <Chat />
           </div>
         )}

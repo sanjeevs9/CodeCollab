@@ -1,2 +1,2 @@
-const backend = "http://localhost:3000";
+const backend = import.meta.env.VITE_BACKEND_URL || "";
 export default backend;

@@ -1,7 +1,9 @@
+import dotenv from "dotenv";
+dotenv.config();
 import http from "http";
 import express from "express";
 import { Server } from "socket.io";
-import router from "./router/index.js"; // Adjusted import for the router
+import router from "./router/index.js";
 import cors from "cors";
 const PORT = process.env.PORT || 3000;
 const IP_ADDRESS = process.env.IP_ADDRESS || "0.0.0.0";

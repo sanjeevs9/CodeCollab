@@ -369,12 +369,12 @@ export default function ClassroomsContent() {
                 <span className="text-sm">{allclass.length} total</span>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
               <div className="relative">
                 <Input
                   type="text"
                   placeholder="Search classrooms..."
-                  className="pl-10 input-dark w-64 h-10"
+                  className="pl-10 input-dark w-full md:w-64 h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
