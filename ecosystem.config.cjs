@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "codecollab-backend",
       cwd: "./backend",
-      script: "index.js",
+      script: "dist/index.js",
       instances: 1,
       autorestart: true,
       watch: false,
